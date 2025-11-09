@@ -6,11 +6,15 @@ export default function SecurePDFViewer({ srcUrl, token, watermarkText }) {
   const containerRef = useRef(null)
   const overlayRef = useRef(null)
 
-  // Security: disable right-click and print/save shortcuts
+  // Security: disable right-click, print/save shortcuts, and browser print dialog
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
+    
+    // Block right-click context menu
     const onContext = (e) => e.preventDefault()
+    
+    // Block keyboard shortcuts (Ctrl+P, Ctrl+S, PrintScreen)
     const onKeyDown = (e) => {
       const key = e.key.toLowerCase()
       const ctrl = e.ctrlKey || e.metaKey
@@ -18,13 +22,39 @@ export default function SecurePDFViewer({ srcUrl, token, watermarkText }) {
         e.preventDefault()
         e.stopPropagation()
         alert('Printing and saving are disabled.')
+        return false
       }
     }
+    
+    // Block browser print dialog (File → Print, or window.print())
+    const blockPrint = (e) => {
+      e.preventDefault()
+      alert('Printing is disabled for this protected document.')
+      return false
+    }
+    
+    // Override window.print() function
+    const originalPrint = window.print
+    window.print = () => {
+      alert('Printing is disabled for this protected document.')
+      return false
+    }
+    
+    // Block beforeprint event (fires when print dialog opens)
+    window.addEventListener('beforeprint', blockPrint)
+    
+    // Block afterprint event (fires when print dialog closes)
+    window.addEventListener('afterprint', blockPrint)
+    
     document.addEventListener('contextmenu', onContext)
     document.addEventListener('keydown', onKeyDown, true)
+    
     return () => {
       document.removeEventListener('contextmenu', onContext)
       document.removeEventListener('keydown', onKeyDown, true)
+      window.removeEventListener('beforeprint', blockPrint)
+      window.removeEventListener('afterprint', blockPrint)
+      window.print = originalPrint // Restore original print function
     }
   }, [])
 
@@ -97,6 +127,33 @@ export default function SecurePDFViewer({ srcUrl, token, watermarkText }) {
     userSelect: 'none',
     zIndex: 1000,
   }
+
+  // Add CSS to block printing
+  useEffect(() => {
+    const style = document.createElement('style')
+    style.textContent = `
+      @media print {
+        body * {
+          visibility: hidden !important;
+        }
+        body::before {
+          content: "Printing is disabled for this protected document.";
+          visibility: visible !important;
+          display: block;
+          position: fixed;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          font-size: 24px;
+          color: #000;
+        }
+      }
+    `
+    document.head.appendChild(style)
+    return () => {
+      document.head.removeChild(style)
+    }
+  }, [])
 
   return (
     <div style={{ position: 'relative' }}>

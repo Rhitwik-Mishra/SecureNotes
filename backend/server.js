@@ -10,6 +10,7 @@ import mongoose from 'mongoose';
 
 import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
+import academicRoutes from './routes/academic.js';
 import teacherRoutes from './routes/teacher.js';
 import studentRoutes from './routes/student.js';
 
@@ -34,7 +35,8 @@ mongoose.connect(MONGO_URI).then(() => {
 
 // Security middleware
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' }
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  frameguard: { action: 'deny' } // Anti-embedding
 }));
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -44,11 +46,14 @@ const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:5173';
 app.use(cors({ origin: corsOrigin, credentials: true }));
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
+const uploadLimiter = rateLimit({ windowMs: 60 * 1000, max: 10 }); // Stricter for uploads
+
 app.use('/api/', limiter);
 
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/academic', academicRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api/student', studentRoutes);
 

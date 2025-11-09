@@ -31,13 +31,18 @@ export default function StudentDashboard({ apiBase, auth, onLogout }) {
         <div>
           <h3>Available Notes</h3>
           <ul style={{ listStyle: 'none', padding: 0 }}>
-            {notes.map(n => (
-              <li key={n._id} style={{ padding: '8px 0', borderBottom: '1px solid #eee' }}>
-                <div><strong>{n.title}</strong></div>
-                <div style={{ fontSize: 12, color: '#666' }}>{n.subject}</div>
-                <button style={{ marginTop: 6 }} onClick={() => setActiveNote(n)}>View</button>
-              </li>
-            ))}
+            {notes.map(n => {
+              const isActive = activeNote?._id === n._id
+              return (
+                <li key={n._id} style={{ padding: '8px 0', borderBottom: '1px solid #eee' }}>
+                  <div><strong>{n.title}</strong></div>
+                  <div style={{ fontSize: 12, color: '#666' }}>{n.subject}</div>
+                  <button style={{ marginTop: 6 }} onClick={() => setActiveNote(isActive ? null : n)}>
+                    {isActive ? 'Close' : 'View'}
+                  </button>
+                </li>
+              )
+            })}
           </ul>
         </div>
         <div>
